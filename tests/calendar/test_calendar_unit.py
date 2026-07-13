@@ -1,61 +1,20 @@
-# tests/test_calendar_unit.py
-# Unit tests for tradingeconomics.calendar
-# These tests validate URL construction logic, parameter handling,
-# and internal behavior using mocks. No real API calls are made.
+# tests/calendar/test_calendar_unit.py
+# Unit tests for tradingeconomics.calendar — public functions.
+# Validates URL construction and parameter handling via mocks.
+# No real API calls are made; no API key required.
+#
+# Helper-function tests (paramCheck, checkCalendarId) live in
+# test_calendar_url_construction.py.
 
 import unittest
 from unittest.mock import patch
 from tradingeconomics.calendar import (
-    paramCheck,
-    checkCalendarId,
     getCalendarId,
     getCalendarData,
+    getCalendarUpdates,
     getCalendarEvents,
     getCalendarEventsByGroup,
 )
-
-
-class TestParamCheck(unittest.TestCase):
-    """Tests for URL construction in paramCheck()."""
-
-    def test_single_country(self):
-        url = paramCheck("united states")
-        self.assertEqual(
-            url,
-            "/calendar/country/united%20states",
-        )
-
-    def test_multiple_countries(self):
-        url = paramCheck(["united states", "china"])
-        self.assertEqual(
-            url,
-            "/calendar/country/united%20states,china",
-        )
-
-    def test_country_and_indicator(self):
-        url = paramCheck("united states", "inflation rate")
-        self.assertEqual(
-            url,
-            "/calendar/country/united%20states/indicator/inflation%20rate",
-        )
-
-
-class TestCheckCalendarId(unittest.TestCase):
-    """Tests for URL construction in checkCalendarId()."""
-
-    def test_single_id(self):
-        url = checkCalendarId("12345")
-        self.assertEqual(
-            url,
-            "/calendar/calendarid/12345",
-        )
-
-    def test_multiple_ids(self):
-        url = checkCalendarId(["111", "222", "333"])
-        self.assertEqual(
-            url,
-            "/calendar/calendarid/111,222,333",
-        )
 
 
 class TestGetCalendarId(unittest.TestCase):

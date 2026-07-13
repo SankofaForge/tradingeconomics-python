@@ -7,14 +7,17 @@ These tests make REAL API calls to Trading Economics API.
 - They require valid API credentials
 
 Usage:
-    # Run all integration tests
-    pytest tests/integration/ -v --tb=short
+    # Run all integration tests (API key via CLI flag)
+    pytest tests/integration/ -v --apikey=YOUR_KEY
+
+    # Run all integration tests (API key via env var)
+    set apikey=YOUR_KEY && pytest tests/integration/ -v
 
     # Run specific module
-    pytest tests/integration/calendar/ -v
+    pytest tests/integration/calendar/ -v --apikey=YOUR_KEY
 
     # Run with markers
-    pytest tests/integration/ -m "slow" -v
+    pytest tests/integration/ -m "slow" -v --apikey=YOUR_KEY
 """
 
 import pytest
@@ -24,62 +27,70 @@ import tradingeconomics as te
 from tradingeconomics.functions import AuthenticationError
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--apikey",
+        action="store",
+        default=None,
+        help="Trading Economics API key (overrides the 'apikey' environment variable)",
+    )
+
+
+def _resolve_api_key(config):
+    """Return CLI --apikey flag if set, otherwise fall back to the env var."""
+    return config.getoption("--apikey") or os.environ.get("apikey", "")
+
+
 @pytest.fixture(scope="session", autouse=True)
-def setup_api_credentials():
+def setup_api_credentials(request):
     """
     Configure API credentials for integration tests.
 
-    Reads from environment variable 'apikey'.
-    If missing or empty, endpoints that require credentials will fail authentication
-    and may be skipped by test fixtures.
+    Resolution order:
+      1. --apikey CLI flag  (pytest ... --apikey=YOUR_KEY)
+      2. 'apikey' environment variable
+
+    If neither is set, tests that call skip_if_no_api_key will be skipped,
+    and AuthenticationError responses are caught and skipped automatically.
     """
-    api_key = os.environ.get("apikey", "")
+    api_key = _resolve_api_key(request.config)
     te.login(api_key)
-
-    print(f"\n🔑 Using API key: {api_key[:10]}...")
-
+    print(f"\nAPI key: {'configured' if api_key else 'not set (integration tests will be skipped)'}")
     yield
-
-    print("\n✅ Integration tests completed")
 
 
 @pytest.fixture
-def skip_if_no_api_key():
-    """Skip test when no API key is configured."""
-    api_key = os.environ.get("apikey", "")
-    if api_key == "":
+def skip_if_no_api_key(request):
+    """Skip the test when no API key is available."""
+    api_key = _resolve_api_key(request.config)
+    if not api_key:
         pytest.skip(
-            "Skipping: requires an active API subscription. "
-            "Please subscribe to a plan at https://tradingeconomics.com/api/pricing.aspx to get an API key."
+            "No API key provided. Pass --apikey=YOUR_KEY or set the 'apikey' env var. "
+            "Subscribe at https://tradingeconomics.com/api/pricing.aspx"
         )
 
 
 @pytest.fixture(autouse=True)
 def throttle_api_requests():
     """
-    Add delay between tests to respect API rate limits.
-
-    This prevents:
-    - HTTP 429 (Too Many Requests) errors
-    - Temporary IP blocks from API server
-    - quota exhaustion with missing API credentials
-
-    The delay is applied AFTER each test completes.
+    Add a 1-second delay after every test to respect API rate limits.
+    Prevents HTTP 429 errors and temporary IP blocks.
     """
-    yield  # Test runs here
-    time.sleep(1)  # 1 second delay after each test
+    yield
+    time.sleep(1)
 
 
 @pytest.fixture(autouse=True)
-def skip_auth_failures_without_api_key():
+def skip_auth_failures_without_api_key(request):
     """
-    Skip integration tests that require paid API access when no API key is set.
+    Automatically skip tests that raise AuthenticationError when no API key is set.
+    When a key IS set, the error is re-raised so it surfaces as a real failure.
     """
     try:
         yield
     except AuthenticationError as exc:
-        api_key = os.environ.get("apikey", "")
-        if api_key == "":
+        api_key = _resolve_api_key(request.config)
+        if not api_key:
             pytest.skip(f"Skipping endpoint requiring paid API access: {exc}")
         raise
 

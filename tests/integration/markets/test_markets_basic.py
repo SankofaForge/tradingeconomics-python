@@ -507,9 +507,12 @@ class TestMarketsIntraday:
             assert isinstance(first_item, dict)
 
     def test_markets_intraday_with_date_range(self):
-        """Test: te.getMarketsIntraday(symbols='aapl:us', initDate='2026-01-01', endDate='2026-01-30')"""
+        """Test: te.getMarketsIntraday(symbols='aapl:us', initDate last 5 days)"""
+        from datetime import date, timedelta
+        end = date.today().strftime("%Y-%m-%d")
+        start = (date.today() - timedelta(days=5)).strftime("%Y-%m-%d")
         result = te.getMarketsIntraday(
-            symbols="aapl:us", initDate="2026-01-01", endDate="2026-01-30"
+            symbols="aapl:us", initDate=start, endDate=end
         )
 
         assert result is not None
@@ -524,11 +527,14 @@ class TestMarketsIntradayByInterval:
     """Test Markets intraday by interval endpoints."""
 
     def test_markets_intraday_by_interval(self):
-        """Test: te.getMarketsIntradayByInterval(symbol='aapl:us', initDate='2026-01-01', endDate='2026-01-30', interval='10m')"""
+        """Test: te.getMarketsIntradayByInterval(symbol='aapl:us', last 5 days, interval='10m')"""
+        from datetime import date, timedelta
+        end = date.today().strftime("%Y-%m-%d")
+        start = (date.today() - timedelta(days=5)).strftime("%Y-%m-%d")
         result = te.getMarketsIntradayByInterval(
             symbol="aapl:us",
-            initDate="2026-01-01",
-            endDate="2026-01-30",
+            initDate=start,
+            endDate=end,
             interval="10m",
         )
 

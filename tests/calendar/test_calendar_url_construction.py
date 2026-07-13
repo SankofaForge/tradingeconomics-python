@@ -1,10 +1,14 @@
 """
-Unit tests for calendar.py URL construction
-Tests that query parameters (importance, values) are correctly formatted with ? instead of &
+Unit tests for calendar.py URL construction.
+
+Covers:
+  - paramCheck() / checkCalendarId() helper functions
+  - Query-parameter formatting (? vs & separators)
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+from tradingeconomics.calendar import paramCheck, checkCalendarId
 import tradingeconomics as te
 
 
@@ -164,3 +168,57 @@ class TestCalendarURLConstruction(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# Helper-function tests
+# ---------------------------------------------------------------------------
+
+class TestParamCheck(unittest.TestCase):
+    """Direct tests for the paramCheck() URL-building helper."""
+
+    def test_single_country(self):
+        self.assertEqual(paramCheck("united states"), "/calendar/country/united%20states")
+
+    def test_multiple_countries(self):
+        self.assertEqual(
+            paramCheck(["united states", "china"]),
+            "/calendar/country/united%20states,china",
+        )
+
+    def test_country_string_and_indicator_string(self):
+        self.assertEqual(
+            paramCheck("united states", "inflation rate"),
+            "/calendar/country/united%20states/indicator/inflation%20rate",
+        )
+
+    def test_country_list_and_indicator_string(self):
+        self.assertEqual(
+            paramCheck(["united states", "china"], "gdp"),
+            "/calendar/country/united%20states,china/indicator/gdp",
+        )
+
+    def test_country_string_and_indicator_list(self):
+        self.assertEqual(
+            paramCheck("united states", ["gdp", "inflation rate"]),
+            "/calendar/country/united%20states/indicator/gdp,inflation%20rate",
+        )
+
+    def test_both_lists(self):
+        self.assertEqual(
+            paramCheck(["united states", "china"], ["gdp", "inflation rate"]),
+            "/calendar/country/united%20states,china/indicator/gdp,inflation%20rate",
+        )
+
+
+class TestCheckCalendarId(unittest.TestCase):
+    """Direct tests for the checkCalendarId() URL-building helper."""
+
+    def test_single_id(self):
+        self.assertEqual(checkCalendarId("12345"), "/calendar/calendarid/12345")
+
+    def test_multiple_ids(self):
+        self.assertEqual(
+            checkCalendarId(["111", "222", "333"]),
+            "/calendar/calendarid/111,222,333",
+        )

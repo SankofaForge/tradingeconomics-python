@@ -3,10 +3,6 @@ import tradingeconomics as te
 
 
 class TestWorldBankIntegration(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        te.login("")
-
     def test_getWBCategories_none(self):
         res = te.getWBCategories(category=None)
         self.assertIsInstance(res, list)
